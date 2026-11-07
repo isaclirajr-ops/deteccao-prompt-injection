@@ -19,22 +19,37 @@ São duas camadas:
 1. **Varredura técnica**: um script Python que roda **no seu computador, sem IA, sem internet e sem gastar tokens**. Ele mede o arquivo em vez de "ler" o texto, então o conteúdo escondido não tem como dar ordens a ele.
 2. **Leitura pelos padrões**: a skill orienta o Claude a reconhecer instruções dirigidas a IA, roteiros de decisão e pedidos de "não mencionar" no texto visível.
 
-O que a varredura técnica detecta:
+A varredura técnica trabalha em dois níveis, para ser praticamente imperceptível no dia a dia:
+
+- **Nível 1, sempre:** cerca de 16 ms por página, sem OCR. Uma petição de 1 página leva cerca de 0,1 s.
+- **Nível 2, só quando o próprio documento dá motivo:** o OCR, com teto de 60 s por documento. Os gatilhos são:
+  - página escaneada com camada de texto invisível, conferida por amostragem que se amplia se houver divergência;
+  - imagem com indício de texto de baixo contraste;
+  - pedido de **análise profunda** (`--profundo`).
+
+O que ela detecta:
 
 | Formato | Técnicas |
 |---|---|
-| **PDF** | texto da cor do fundo; texto coberto por imagem ou forma; fonte abaixo de 3 pt; modo de texto invisível; opacidade zero; texto fora da página; camada de texto que não bate com o OCR da imagem (página escaneada); anotações; campos de formulário; metadados; JavaScript; anexos embutidos |
-| **Word** (.docx/.docm/.dotx/.dotm) | formatação "oculto"; fonte minúscula; texto da cor do fundo; comentários; revisões controladas (texto excluído que continua no arquivo); códigos de campo; texto alternativo de imagens; propriedades |
-| **E-mail, HTML, texto** | conteúdo escondido por CSS; frases de comando a IA |
-| **Todos** | caracteres invisíveis (largura zero e caracteres "tag" Unicode, que são decodificados); letras de outros alfabetos disfarçadas; frases típicas de comando a IA |
+| **PDF** | texto da cor do fundo ou coberto por imagem/forma; fonte abaixo de 3 pt; modo invisível; opacidade zero; texto fora da página; **texto sobreposto a outro texto**; **fonte com mapa de caracteres adulterado** (a página mostra uma palavra e a IA lê outra); **ActualText** divergente; **versões anteriores salvas no arquivo** (texto apagado que continua lá); camada OCR divergente da imagem; anotações; formulários; metadados; JavaScript; **arquivos embutidos** |
+| **Word** | formatação "oculto"; fonte minúscula; cor do fundo; comentários; revisões; campos; texto alternativo; **variáveis ocultas**; **blocos embutidos (altChunk)**; **macros**; **modelo remoto e vínculos externos**; objetos embutidos |
+| **Excel** | **abas ocultas** (inclusive as "muito ocultas"); linhas e colunas ocultas; fonte branca; formato `;;;`; comentários; macros |
+| **PowerPoint** | **slides ocultos**; **anotações do apresentador**; texto minúsculo ou fora do slide; comentários; macros |
+| **Imagens** | metadados e, havendo indício, texto quase invisível lido por OCR com realce |
+| **E-mail, HTML, texto** | conteúdo escondido por CSS ou comentário; **anexos** |
+| **Todos** | caracteres invisíveis, caracteres "tag" e **seletores de variação** (decodificados); homóglifos; **letras estilizadas e espaçadas**; **conteúdo codificado** (base64, hexadecimal, binário, ROT13); frases de comando a IA |
 
 O resultado sai em três níveis:
 
 - **LIMPO**: o Claude segue a análise sem comentar.
-- **ATENÇÃO**: há texto não visível, mas sem sinal de IA. Em autos é comum e quase sempre legítimo: carimbo de assinatura eletrônica em fonte miúda, boleto sobreposto, OCR ruim. O Claude confere os trechos e só avisa se for de fato instrução a IA.
-- **SUSPEITO**: aparece um aviso na tela e o Claude abre a resposta com `⚠️ POSSÍVEL PROMPT INJECTION DETECTADO`, indicando o documento, a página, o trecho e o motivo.
+- **ATENÇÃO**: há item a conferir sem sinal de IA. Em autos é comum e quase sempre legítimo: carimbo de assinatura eletrônica, boleto sobreposto, OCR ruim. O Claude confere os trechos e só avisa se for de fato instrução a IA.
+- **SUSPEITO**: o plugin **bloqueia a leitura do documento** e já deixa prontos:
+  - um **laudo técnico em PDF**, com hash SHA-256, achados transcritos, a página original ao lado da página com o conteúdo escondido destacado, método e limitações, pronto para juntar aos autos;
+  - uma versão **«só o visível»** do documento.
 
-**Desempenho:** cerca de 12 ms por página, medidos em 9.803 páginas de autos reais do Projudi (TJPR). A calibragem nesse conjunto terminou com zero falsos SUSPEITO. O OCR, opcional, leva alguns segundos por página e só roda nas páginas escaneadas que têm camada de texto invisível. Cada arquivo é varrido uma vez só: o resultado fica em cache pelo hash.
+  O Claude mostra o alerta e **você decide**: (a) analisar pela versão «só o visível»; (b) liberar a leitura do original; ou (c) não analisar.
+
+**Desempenho:** a calibragem foi feita em cerca de 9.800 páginas de autos reais do Projudi (TJPR) e em 125 arquivos Word e imagens, com zero falsos SUSPEITO. Nos autos escaneados, o OCR por amostragem somou cerca de 3 s por PDF. Cada arquivo é varrido uma vez só: o resultado fica em cache pelo hash.
 
 ## Instalação
 
@@ -49,7 +64,7 @@ Dentro do Claude Code, digite:
 /plugin install deteccao-prompt-injection@deteccao-prompt-injection
 ```
 
-Depois reinicie o Claude Code. Na primeira sessão, o plugin prepara sozinho um ambiente Python próprio (leva de 1 a 2 minutos, uma vez só). A partir daí, toda leitura de PDF, Word, e-mail (.eml) ou HTML passa pela varredura antes.
+Depois reinicie o Claude Code. Na primeira sessão, o plugin prepara sozinho um ambiente Python próprio (leva de 1 a 2 minutos, uma vez só). A partir daí, toda leitura de PDF, Word, Excel, PowerPoint, e-mail (.eml), HTML ou imagem passa pela varredura antes.
 
 **Pastas que não devem ser varridas** (por exemplo, as peças do seu escritório): crie no projeto o arquivo `.claude/deteccao-prompt-injection.json`:
 
@@ -72,30 +87,39 @@ No app não existe hook automático. A skill orienta o Claude a rodar o script a
 ### Opção 3 — só o script, sem o Claude
 
 ```bash
-pip install pymupdf python-docx lxml beautifulsoup4
+pip install pymupdf python-docx lxml beautifulsoup4 fonttools numpy
 python plugin/skills/deteccao-prompt-injection/scripts/varredura_prompt_injection.py "peticao.pdf"
 ```
 
-O código de saída 1 indica SUSPEITO, o que permite usar o script em automações. A opção `--json` gera a saída para outros sistemas.
+Opções úteis:
+
+- uma **pasta** no lugar do arquivo varre os autos inteiros;
+- `--profundo` faz a análise profunda (OCR de todas as páginas);
+- `--laudo DESTINO` gera o laudo de qualquer documento;
+- `--liberar` registra a sua liberação de um documento SUSPEITO;
+- `--json` gera a saída para outros sistemas.
+
+O código de saída 1 indica SUSPEITO.
 
 ## Privacidade
 
 - Nada sai do seu computador: a varredura é local e não acessa a internet.
 - O plugin não envia dados a terceiros nem coleta telemetria.
-- O cache em `~/.cache/varredura-prompt-injection/` guarda o relatório de cada arquivo varrido, incluindo os trechos ocultos encontrados. Apague a pasta quando quiser.
+- O cache em `~/.cache/varredura-prompt-injection/` guarda o relatório, o laudo e a versão «só o visível» de cada arquivo varrido, incluindo os trechos ocultos encontrados. Apague a pasta quando quiser.
 
 ## Limites
 
 - Instrução a IA escrita em **texto visível**, no meio da argumentação, só é pega pelas frases mais típicas. O restante depende da leitura do Claude e, sobretudo, da sua.
 - Imagem pura (print, foto) sem camada de texto não tem o que medir.
-- Arquivos embutidos dentro do PDF são apenas listados, não varridos.
+- No modo automático, as páginas escaneadas são conferidas por amostragem; a conferência completa é feita com `--profundo`.
+- Vínculos externos (modelo remoto etc.) são apontados, mas o conteúdo remoto não é baixado.
 - `.doc` (Word antigo), `.odt` e `.rtf` não são suportados: converta para PDF ou `.docx`.
 - Técnicas novas surgem. Se encontrar uma que passe despercebida, veja [SEGURANCA.md](SEGURANCA.md).
 
 ## Testes
 
 ```bash
-python plugin/skills/deteccao-prompt-injection/scripts/testar_varredura.py   # 12 técnicas conhecidas
+python plugin/skills/deteccao-prompt-injection/scripts/testar_varredura.py   # 49 casos: técnicas conhecidas e casos legítimos
 python testes/testar_hook.py                                                 # o hook do plugin, de ponta a ponta
 ```
 

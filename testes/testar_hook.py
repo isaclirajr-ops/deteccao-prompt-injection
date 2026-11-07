@@ -59,12 +59,13 @@ def main():
 
         casos = [
             ("Read de PDF suspeito", {"tool_name": "Read", "tool_input": {"file_path": str(suspeito)}, "cwd": str(tmp)},
-             lambda o: "systemMessage" in o and "SUSPEITO" in o["hookSpecificOutput"]["additionalContext"].upper()),
+             lambda o: "systemMessage" in o and o["hookSpecificOutput"].get("permissionDecision") == "deny"
+             and "laudo" in o["hookSpecificOutput"]["permissionDecisionReason"]),
             ("Read de PDF limpo", {"tool_name": "Read", "tool_input": {"file_path": str(limpo)}, "cwd": str(tmp)},
              lambda o: "systemMessage" not in o and "LIMPO" in o["hookSpecificOutput"]["additionalContext"]),
             ("Bash com PDF suspeito", {"tool_name": "Bash", "tool_input": {"command": f'pdftotext "{suspeito}" -'},
                                        "cwd": str(tmp)},
-             lambda o: "systemMessage" in o),
+             lambda o: "systemMessage" in o and o["hookSpecificOutput"].get("permissionDecision") == "deny"),
             ("Pasta ignorada por configuração", {"tool_name": "Read", "tool_input": {"file_path": str(proprio)},
                                                  "cwd": str(tmp)},
              lambda o: o == {}),
@@ -81,6 +82,16 @@ def main():
             ok = conferir(saida)
             falhas += not ok
             print(f"{'OK   ' if ok else 'FALHA'} {nome}" + ("" if ok else f" -> {json.dumps(saida)[:300]}"))
+        # o usuário libera o original: a leitura passa, com lembrete
+        py = Path(env["CLAUDE_PLUGIN_DATA"]) / "venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        script = PLUGIN / "skills" / "deteccao-prompt-injection" / "scripts" / "varredura_prompt_injection.py"
+        subprocess.run([str(py), "-I", str(script), "--liberar", str(suspeito)], env=env, capture_output=True, timeout=120)
+        saida = chamar({"tool_name": "Read", "tool_input": {"file_path": str(suspeito)}, "cwd": str(tmp)}, env)
+        ok = saida.get("hookSpecificOutput", {}).get("permissionDecision") != "deny" and \
+            "LIBEROU" in saida.get("hookSpecificOutput", {}).get("additionalContext", "")
+        casos.append(None)
+        falhas += not ok
+        print(f"{'OK   ' if ok else 'FALHA'} Leitura liberada pelo usuário" + ("" if ok else f" -> {json.dumps(saida)[:300]}"))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print(f"\n{len(casos) - falhas}/{len(casos)} testes do hook ok")

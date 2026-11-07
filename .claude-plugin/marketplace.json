@@ -12,7 +12,7 @@
       "name": "deteccao-prompt-injection",
       "source": "./plugin",
       "description": "Detecta prompt injection (instruções escondidas para IA) em petições, decisões, laudos, contratos e e-mails antes que o Claude os analise. Varredura local, sem IA: texto oculto, fonte minúscula, cor do fundo, camada OCR divergente, caracteres invisíveis.",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "author": {
         "name": "Isac Lira Júnior",
         "url": "https://github.com/isaclirajr-ops"

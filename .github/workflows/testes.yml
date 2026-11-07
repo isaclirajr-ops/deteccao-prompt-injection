@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Instalar bibliotecas
-        run: python -m pip install pymupdf python-docx lxml beautifulsoup4
+        run: python -m pip install pymupdf python-docx lxml beautifulsoup4 fonttools numpy
       - name: Autoteste da varredura (12 técnicas)
         run: python plugin/skills/deteccao-prompt-injection/scripts/testar_varredura.py
       - name: Teste de ponta a ponta do hook do plugin
