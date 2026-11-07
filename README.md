@@ -148,6 +148,10 @@ A ferramenta serve para **proteger** a análise de documentos de terceiros, não
 
 [MIT](LICENSE): uso livre, inclusive comercial, mantido o aviso de autoria. Software fornecido "no estado em que se encontra", sem garantia.
 
-Desenvolvido por Isac Lira Júnior, advogado (OAB/PR 102.567), com o Claude Code. Sugestões e correções são bem-vindas por *issues* e *pull requests*.
+**Autor:** Isac Lira Júnior, advogado (OAB/PR 102.567). Desenvolvido com o Claude Code.
+
+Siga no Instagram: [@isaclirajr.adv](https://www.instagram.com/isaclirajr.adv/)
+
+Sugestões e correções são bem-vindas por *issues* e *pull requests*.
 
 *English summary: [README.en.md](README.en.md).*
