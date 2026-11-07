@@ -1,0 +1,23 @@
+name: Publicar versão
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Gerar o zip da skill para o claude.ai
+        run: python ferramentas/empacotar_claude_ai.py
+      - name: Criar a versão no GitHub com o zip anexado
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" dist/deteccao-prompt-injection.zip --title "${{ github.ref_name }}" --notes-file CHANGELOG.md

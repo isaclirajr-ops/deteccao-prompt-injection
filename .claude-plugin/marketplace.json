@@ -1,0 +1,24 @@
+{
+  "name": "deteccao-prompt-injection",
+  "owner": {
+    "name": "Isac Lira Júnior",
+    "url": "https://github.com/isaclirajr-ops"
+  },
+  "metadata": {
+    "description": "Detecção de prompt injection em documentos jurídicos para o Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "deteccao-prompt-injection",
+      "source": "./plugin",
+      "description": "Detecta prompt injection (instruções escondidas para IA) em petições, decisões, laudos, contratos e e-mails antes que o Claude os analise. Varredura local, sem IA: texto oculto, fonte minúscula, cor do fundo, camada OCR divergente, caracteres invisíveis.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Isac Lira Júnior",
+        "url": "https://github.com/isaclirajr-ops"
+      },
+      "category": "security",
+      "homepage": "https://github.com/isaclirajr-ops/deteccao-prompt-injection"
+    }
+  ]
+}

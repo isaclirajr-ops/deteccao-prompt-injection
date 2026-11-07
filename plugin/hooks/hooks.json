@@ -1,0 +1,40 @@
+{
+  "description": "Varredura técnica de prompt injection antes da leitura de PDF, Word, e-mail e HTML",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/hook_varredura.py\" --preparar || python \"${CLAUDE_PLUGIN_ROOT}/hooks/hook_varredura.py\" --preparar",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/hook_varredura.py\" || python \"${CLAUDE_PLUGIN_ROOT}/hooks/hook_varredura.py\"",
+            "timeout": 300,
+            "statusMessage": "Varredura de prompt injection no documento..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/hook_varredura.py\" || python \"${CLAUDE_PLUGIN_ROOT}/hooks/hook_varredura.py\"",
+            "timeout": 60,
+            "statusMessage": "Varredura de prompt injection no documento..."
+          }
+        ]
+      }
+    ]
+  }
+}
