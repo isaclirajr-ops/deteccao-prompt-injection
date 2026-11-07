@@ -53,6 +53,21 @@ O resultado sai em três níveis:
 
 ## Instalação
 
+### Claude Code ou chat do Claude: qual a diferença
+
+A ferramenta funciona nos dois, mas só o Claude Code oferece a proteção completa:
+
+| | **Claude Code** (plugin) | **Chat do Claude** (claude.ai, app desktop e celular) |
+|---|---|---|
+| **Quando a varredura roda** | **Sempre, automaticamente:** o hook varre o documento antes de qualquer leitura | Quando o Claude aplica a skill. Ela manda varrer antes de ler qualquer documento de terceiro, mas não há hook que **garanta** isso |
+| **No SUSPEITO** | A leitura é **bloqueada** até você decidir | Não há bloqueio automático: o Claude deve parar, mostrar o alerta e perguntar, conforme a skill |
+| **OCR (Nível 2)** | Funciona se o Tesseract estiver instalado | Normalmente não roda, porque o ambiente do chat não tem Tesseract. Páginas escaneadas e imagens com indício aparecem como "não conferidas" |
+| **Nível 1** (texto oculto, fonte adulterada, sobreposição, versões, codificados etc.) | Completo | Completo |
+| **Laudo** | Salvo no seu computador | Gerado no ambiente do chat e entregue para download |
+| **Requisitos** | Python 3.10 ou mais novo | Execução de código ativada. Se as bibliotecas não estiverem no ambiente, a skill as instala com `pip`, e para isso o acesso à rede do ambiente de código precisa estar liberado |
+
+> **Situação dos testes:** o script e o plugin do Claude Code são testados automaticamente em Windows, macOS e Linux a cada alteração. A versão para o chat usa o mesmo script, mas o comportamento da skill dentro do claude.ai ainda não foi testado de ponta a ponta. Relatos são bem-vindos (veja [SEGURANCA.md](SEGURANCA.md)).
+
 ### Opção 1 — Claude Code (recomendada: a varredura fica automática)
 
 Requisito: **Python 3.10 ou mais novo** instalado. No Windows, baixe em [python.org](https://www.python.org/downloads/) e marque **"Add python.exe to PATH"**.
@@ -82,7 +97,7 @@ Depois reinicie o Claude Code. Na primeira sessão, o plugin prepara sozinho um 
 1. Baixe `deteccao-prompt-injection.zip` na página de [Releases](https://github.com/isaclirajr-ops/deteccao-prompt-injection/releases).
 2. Em claude.ai, abra **Configurações → Capacidades → Skills** e envie o zip. A execução de código precisa estar ativada.
 
-No app não existe hook automático. A skill orienta o Claude a rodar o script antes de ler o documento.
+No chat não existe hook automático: a skill orienta o Claude a rodar o script antes de ler o documento. Veja as diferenças na tabela acima.
 
 ### Opção 3 — só o script, sem o Claude
 
